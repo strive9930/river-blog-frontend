@@ -5,7 +5,8 @@ import type {
   MenuTree, 
   DashboardStats, 
   LoginRequest,
-  RegisterRequest 
+  RegisterRequest,
+  LoginResponseData
 } from '@/types/api';
 
 export const useUserStore = defineStore('user', {
@@ -28,43 +29,62 @@ export const useUserStore = defineStore('user', {
     async login(credentials: LoginRequest) {
       console.log('[Store.login] 开始调用登录 API...');
       
-      // 注意：由于响应拦截器已经返回了 response.data
-      // 所以这里直接获取的就是后端返回的数据
+      // 调用登录接口，后端应返回完整数据（token + 用户信息 + 权限 + 菜单 + 角色）
       const response = await authApi.login(credentials);
       
       console.log('[Store.login] API 返回数据:', response);
       console.log('[Store.login] response.success:', response?.success);
       console.log('[Store.login] response.data:', response?.data);
       
-      // 从响应中提取 token 和用户信息
-      const token = response?.data?.token;
-      const user = response?.data?.user;
+      if (!response?.success || !response?.data) {
+        console.error('[Store.login] ❌ 登录失败');
+        throw new Error(response?.message || '登录失败');
+      }
       
-      console.log('[Store.login] ✅ 收到响应，Token:', token ? '存在' : '不存在');
-      console.log('[Store.login] User:', user);
+      const loginData: LoginResponseData = response.data;
       
-      if (!token) {
+      // 检查必要字段
+      if (!loginData.token) {
         console.error('[Store.login] ❌ Token 不存在！');
         throw new Error('登录失败：未收到 Token');
       }
       
-      this.token = token;
-      this.userInfo = user;
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user_info', JSON.stringify(user));
+      console.log('[Store.login] ✅ 收到响应，Token:', loginData.token.substring(0, 20) + '...');
+      console.log('[Store.login] 用户ID:', loginData.userId);
+      console.log('[Store.login] 用户名:', loginData.username);
+      console.log('[Store.login] 角色数量:', loginData.roles?.length || 0);
+      console.log('[Store.login] 权限数量:', loginData.permissions?.length || 0);
+      console.log('[Store.login] 菜单数量:', loginData.menus?.length || 0);
+      console.log('[Store.login] 是否管理员:', loginData.isAdmin);
+      
+      // 构建完整的用户信息对象
+      const userInfo: UserInfo = {
+        id: loginData.userId,
+        email: loginData.email || credentials.email,
+        nickName: loginData.nickname,
+        nickname: loginData.nickname,
+        avatar: loginData.avatar,
+        isEnabled: true,
+        roles: loginData.roles?.map(r => r.code || r.name) || [],
+        permissions: loginData.permissions || [],
+        menus: loginData.menus || [],
+        isAdmin: loginData.isAdmin || false
+      };
+      
+      console.log('[Store.login] 设置的用户信息:', userInfo);
+      
+      // 存储 token 和用户信息
+      this.token = loginData.token;
+      this.userInfo = userInfo;
+      this.permissions = loginData.permissions || [];
+      this.menus = loginData.menus || [];
+      
+      // 持久化到 localStorage
+      localStorage.setItem('auth_token', loginData.token);
+      localStorage.setItem('user_info', JSON.stringify(userInfo));
       
       console.log('[Store.login] ✅ 已保存到 localStorage');
       console.log('[Store.login] localStorage 验证:', localStorage.getItem('auth_token') ? '✅ 成功' : '❌ 失败');
-      
-      // 登录后加载用户信息
-      console.log('[Store.login] 开始加载用户信息...');
-      try {
-        await this.loadUserInfo();
-        console.log('[Store.login] ✅ 用户信息加载完成');
-      } catch (error) {
-        console.error('[Store.login] ❌ 加载用户信息失败:', error);
-        // 即使失败也不要抛出错误，避免影响登录流程
-      }
       
       return response;
     },

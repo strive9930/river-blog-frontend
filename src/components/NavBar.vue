@@ -139,7 +139,7 @@
     <!-- 移动端遮罩层 -->
     <div 
       class="mobile-overlay" 
-      v-if="!isSmallScreenHoverEnabled && showMobileMenu && mobileMenuOpen" 
+      v-if="!isSmallScreenHoverEnabled && showMobileMenuOnHover && mobileMenuOpen" 
       @click="toggleMobileMenu"
     ></div>
   </header>
@@ -149,7 +149,6 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useUserStore } from '@/stores/user';
 import { useRoute, useRouter } from 'vue-router';
-import { userApi } from '@/utils/api';
 import type { MenuTree } from '@/types/api';
 
 // Props
@@ -261,21 +260,25 @@ const handleLogout = async () => {
 const loadUserMenus = async () => {
   try {
     if (userStore.isLoggedIn) {
-      const response = await userApi.getMenus();
-      if (response.success && response.data) {
+      // 直接使用 store 中的菜单数据（登录时已获取）
+      console.log('[NavBar] 使用 Store 中的菜单数据:', userStore.menus.length, '个菜单');
+      
+      if (userStore.menus && userStore.menus.length > 0) {
         // 转换菜单数据格式
-        const transformedMenus = transformMenuData(response.data);
+        const transformedMenus = transformMenuData(userStore.menus);
         dynamicMenuItems.value = transformedMenus;
+        console.log('[NavBar] 菜单转换完成:', transformedMenus.length, '个菜单项');
       } else {
-        // 如果API返回空数据，也清空动态菜单
+        console.warn('[NavBar] ⚠️ Store 中没有菜单数据');
         dynamicMenuItems.value = [];
       }
     } else {
       // 用户未登录时清空动态菜单
+      console.log('[NavBar] 用户未登录，清空菜单');
       dynamicMenuItems.value = [];
     }
   } catch (error) {
-    console.error('加载用户菜单失败:', error);
+    console.error('[NavBar] ❌ 加载用户菜单失败:', error);
     // 出错时清空动态菜单，只保留静态菜单
     dynamicMenuItems.value = [];
   }
@@ -321,12 +324,22 @@ let unwatch: () => void;
 
 // 组件挂载时加载菜单
 onMounted(async () => {
+  console.log('[NavBar] 组件挂载，开始加载菜单...');
   await loadUserMenus();
   
   // 监听用户登录状态变化
-  unwatch = watch(() => userStore.isLoggedIn, async () => {
+  unwatch = watch(() => userStore.isLoggedIn, async (newVal) => {
+    console.log('[NavBar] 登录状态变化:', newVal);
     await loadUserMenus();
   });
+  
+  // 监听菜单数据变化（用于登录后自动更新）
+  watch(() => userStore.menus, (newMenus) => {
+    console.log('[NavBar] 菜单数据变化:', newMenus?.length || 0, '个菜单');
+    if (userStore.isLoggedIn && newMenus && newMenus.length > 0) {
+      loadUserMenus();
+    }
+  }, { deep: true });
 });
 
 // 组件卸载时清理监听器

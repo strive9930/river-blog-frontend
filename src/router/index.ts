@@ -87,36 +87,68 @@ router.beforeEach(async (to, from, next) => {
   // 如果用户已登录但还没有加载完整的用户信息，则加载它
   // 注意：只在访问非登录/注册页面时才执行
   if ((userStore.isLoggedIn || token) && to.path !== '/login' && to.path !== '/register' && to.path !== '/forgot-password') {
-    // 检查是否需要加载完整的用户信息（有 token 但没有 permissions）
-    const needLoadFullInfo = !userStore.permissions || userStore.permissions.length === 0;
+    // 检查是否需要加载完整的用户信息（有 token 但没有 userInfo）
+    const needLoadFullInfo = !userStore.userInfo;
     
-    console.log('[路由守卫] needLoadFullInfo:', needLoadFullInfo, 'token:', !!token);
+    console.log('[路由守卫] needLoadFullInfo:', needLoadFullInfo, 'userInfo:', !!userStore.userInfo);
+    console.log('[路由守卫] permissions:', userStore.permissions?.length, 'menus:', userStore.menus?.length);
     
+    // 如果需要加载完整信息且有 token，尝试从 localStorage 恢复
     if (needLoadFullInfo && token) {
       try {
-        console.log('[路由守卫] 开始加载完整用户信息...');
+        console.log('[路由守卫] 尝试从 localStorage 恢复用户信息...');
+        const storedUserInfo = localStorage.getItem('user_info');
+        
+        if (storedUserInfo && storedUserInfo !== 'undefined') {
+          const userInfo = JSON.parse(storedUserInfo);
+          console.log('[路由守卫] ✅ 从 localStorage 恢复用户信息成功');
+          
+          // 更新 Store 状态
+          userStore.userInfo = userInfo;
+          userStore.permissions = userInfo.permissions || [];
+          userStore.menus = userInfo.menus || [];
+          
+          console.log('[路由守卫] 恢复后 - permissions:', userStore.permissions.length, 'menus:', userStore.menus.length);
+        } else {
+          console.warn('[路由守卫] ⚠️ localStorage 中没有有效的用户信息');
+        }
+      } catch (error) {
+        console.error('[路由守卫] ❌ 从 localStorage 恢复用户信息失败:', error);
+      }
+    }
+    
+    // 如果仍然没有用户信息，尝试从服务器加载
+    if (!userStore.userInfo && token) {
+      try {
+        console.log('[路由守卫] 开始从服务器加载用户信息...');
         await userStore.loadUserInfo();
         console.log('[路由守卫] 用户信息加载完成');
-        
-        // 根据用户权限动态添加路由
-        if (userStore.menus && userStore.menus.length > 0) {
-          const dynamicRoutes = addDynamicRoutes(userStore.menus);
-          dynamicRoutes.forEach(route => {
-            if (!router.hasRoute(route.name!)) {
-              router.addRoute(route);
-            }
-          });
-          console.log('[路由守卫] 添加了动态路由');
+      } catch (error) {
+        // 如果加载用户信息失败，可能是 token 失效了
+        console.error('[路由守卫] ❌ 加载用户信息失败:', error);
+        // 清除无效 token
+        userStore.logout();
+        next('/login');
+        return;
+      }
+    }
+    
+    // 根据用户权限动态添加路由（如果还没有添加）
+    if (userStore.menus && userStore.menus.length > 0) {
+      const dynamicRoutes = addDynamicRoutes(userStore.menus);
+      let addedCount = 0;
+      dynamicRoutes.forEach(route => {
+        if (!router.hasRoute(route.name!)) {
+          router.addRoute(route);
+          addedCount++;
         }
-        
+      });
+      if (addedCount > 0) {
+        console.log('[路由守卫] 添加了', addedCount, '个动态路由');
         // 重新导航到目标路由（因为添加了新路由）
         console.log('[路由守卫] 重新导航到:', to.path);
         next({ ...to, replace: true });
         return;
-      } catch (error) {
-        // 如果加载用户信息失败，可能是 token 失效了
-        console.error('[路由守卫] 加载用户信息失败:', error);
-        // 继续执行，不阻止用户访问页面
       }
     }
 

@@ -3,6 +3,7 @@ import type {
   ApiResponse, 
   LoginRequest, 
   LoginResponse,
+  LoginResponseData,
   UserInfo,
   MenuTree,
   DashboardStats,
@@ -55,9 +56,9 @@ export const authApi = {
   register: (data: RegisterRequest) => 
     api.post<ApiResponse>('/auth/register', data),
 
-  // 用户登录
+  // 用户登录（返回包含完整用户信息的数据）
   login: (data: LoginRequest) => 
-    api.post<ApiResponse<LoginResponse>>('/auth/login', data),
+    api.post<ApiResponse<LoginResponseData>>('/auth/login', data),
 
   // 获取当前用户信息
   getCurrentUser: () => 

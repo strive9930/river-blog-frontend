@@ -73,22 +73,21 @@ const handleLogin = async () => {
 
     console.log('[登录] 步骤 1: 开始登录...');
     
-    // 等待登录完全完成（包括加载用户信息）
+    // 登录接口已经返回完整数据（token + 用户信息 + 权限 + 菜单）
     const result = await userStore.login({
       email: loginForm.email,
       password: loginForm.password
     });
 
-    console.log('[登录] 步骤 2: ✅ 登录 API 调用成功');
+    console.log('[登录] 步骤 2: ✅ 登录成功');
     console.log('[登录] 完整响应:', result);
-    console.log('[登录] result.data:', result?.data);
     console.log('[登录] Token:', result?.data?.token);
     console.log('[登录] localStorage 检查:', localStorage.getItem('auth_token') ? '✅ 已保存' : '❌ 未保存');
     
     ElMessage.success('登录成功');
     
-    // 使用 router.replace 而不是 push，避免重复添加历史记录
-    // replace 会替换当前历史记录，而不是创建新的
+    // 登录后直接跳转，不需要再获取用户信息
+    // 因为登录接口已经返回了所有必要的数据
     console.log('[登录] 步骤 3: 准备跳转到首页...');
     await router.replace('/');
     console.log('[登录] ✅ 跳转完成');

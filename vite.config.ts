@@ -29,8 +29,9 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://localhost:7051', // 更新为实际的后端地址
         changeOrigin: true,
+        secure: false, // 如果后端使用自签名证书，设置为 false
       },
     },
   },

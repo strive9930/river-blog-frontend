@@ -113,8 +113,11 @@ onMounted(async () => {
   if (userStore.isLoggedIn) {
     try {
       await userStore.loadDashboardStats()
-    } catch (error) {
-      console.error('加载仪表盘数据失败:', error)
+    } catch (error: any) {
+      // 如果是 401 错误，不要显示错误信息（响应拦截器已经处理了）
+      if (error.response?.status !== 401) {
+        console.error('加载仪表盘数据失败:', error)
+      }
     }
   }
   
@@ -122,6 +125,7 @@ onMounted(async () => {
   console.log('=== 首页加载完成 ===');
   console.log('Token:', localStorage.getItem('auth_token') ? '✅ 存在' : '❌ 不存在');
   console.log('用户信息:', userStore.userInfo);
+  console.log('isLoggedIn:', userStore.isLoggedIn);
   console.log('====================');
   
   console.log('博客首页已加载')
