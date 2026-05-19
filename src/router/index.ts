@@ -20,32 +20,32 @@ const routes = [
     path: '/blog',
     name: 'Blog',
     component: () => import('@/views/Blog.vue'),
-    meta: { title: '博客', requiresAuth: false }
+    meta: { title: '博客', requiresAuth: false, showSidebar: true }
   },
   {
     path: '/article/:id',
     name: 'Article',
     component: () => import('@/views/Article.vue'),
-    meta: { title: '文章详情', requiresAuth: false },
+    meta: { title: '文章详情', requiresAuth: false, showSidebar: true },
     props: true
   },
   {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/Login.vue'),
-    meta: { title: '登录', requiresAuth: false }
+    meta: { title: '登录', requiresAuth: false, layout: 'auth' }
   },
   {
     path: '/register',
     name: 'Register',
     component: () => import('@/views/Register.vue'),
-    meta: { title: '注册', requiresAuth: false }
+    meta: { title: '注册', requiresAuth: false, layout: 'auth' }
   },
   {
     path: '/forgot-password',
     name: 'ForgotPassword',
     component: () => import('@/views/ForgotPassword.vue'),
-    meta: { title: '忘记密码', requiresAuth: false }
+    meta: { title: '忘记密码', requiresAuth: false, layout: 'auth' }
   },
   {
     path: '/test',

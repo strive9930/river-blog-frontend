@@ -1,61 +1,71 @@
 <template>
-  <div class="register-container">
-    <div class="register-form">
-      <h2>用户注册</h2>
-      <el-form :model="registerForm" :rules="rules" ref="registerFormRef">
-        <el-form-item prop="email">
-          <el-input 
-            v-model="registerForm.email" 
-            placeholder="邮箱" 
-            prefix-icon="User"
-          />
-        </el-form-item>
-        <el-form-item prop="password">
-          <el-input 
-            v-model="registerForm.password" 
-            type="password" 
-            placeholder="密码" 
-            prefix-icon="Lock"
-          />
-        </el-form-item>
-        <el-form-item prop="confirmPassword">
-          <el-input 
-            v-model="registerForm.confirmPassword" 
-            type="password" 
-            placeholder="确认密码" 
-            prefix-icon="Lock"
-          />
-        </el-form-item>
-        <el-form-item prop="nickName">
-          <el-input 
-            v-model="registerForm.nickName" 
-            placeholder="昵称" 
-            prefix-icon="Avatar"
-          />
-        </el-form-item>
-        <el-form-item prop="phoneNumber">
-          <el-input 
-            v-model="registerForm.phoneNumber" 
-            placeholder="手机号" 
-            prefix-icon="Phone"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button 
-            type="primary" 
-            @click="handleRegister" 
-            :loading="loading"
-            style="width: 100%"
-          >
-            注册
-          </el-button>
-        </el-form-item>
-        <div class="login-link">
-          <span>已有账户？</span>
-          <router-link to="/login">立即登录</router-link>
-        </div>
-      </el-form>
+  <div class="auth-card">
+    <div class="auth-card-header">
+      <div class="auth-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M19 8v6M22 11h-6"/>
+        </svg>
+      </div>
+      <h2 class="auth-title">Create Account</h2>
+      <p class="auth-subtitle">Join our community of developers</p>
     </div>
+    <el-form :model="registerForm" :rules="rules" ref="registerFormRef" size="large">
+      <el-form-item prop="email">
+        <el-input
+          v-model="registerForm.email"
+          placeholder="Email address"
+          prefix-icon="User"
+        />
+      </el-form-item>
+      <el-form-item prop="nickName">
+        <el-input
+          v-model="registerForm.nickName"
+          placeholder="Display name"
+          prefix-icon="UserFilled"
+        />
+      </el-form-item>
+      <el-form-item prop="phoneNumber">
+        <el-input
+          v-model="registerForm.phoneNumber"
+          placeholder="Phone (optional)"
+          prefix-icon="Phone"
+        />
+      </el-form-item>
+      <el-form-item prop="password">
+        <el-input
+          v-model="registerForm.password"
+          type="password"
+          placeholder="Password"
+          prefix-icon="Lock"
+          show-password
+        />
+      </el-form-item>
+      <el-form-item prop="confirmPassword">
+        <el-input
+          v-model="registerForm.confirmPassword"
+          type="password"
+          placeholder="Confirm password"
+          prefix-icon="Lock"
+          show-password
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button
+          type="primary"
+          @click="handleRegister"
+          :loading="loading"
+          class="auth-submit-btn"
+        >
+          Create Account
+        </el-button>
+      </el-form-item>
+      <div class="auth-links">
+        <span class="auth-link-text">Already have an account?</span>
+        <router-link to="/login" class="auth-link">Sign in</router-link>
+      </div>
+    </el-form>
   </div>
 </template>
 
@@ -80,7 +90,7 @@ const loading = ref(false);
 
 const validateConfirmPassword = (rule: any, value: string, callback: any) => {
   if (value !== registerForm.password) {
-    callback(new Error('两次输入的密码不一致'));
+    callback(new Error('Passwords do not match'));
   } else {
     callback();
   }
@@ -88,19 +98,19 @@ const validateConfirmPassword = (rule: any, value: string, callback: any) => {
 
 const rules = {
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+    { required: true, message: 'Please enter your email', trigger: 'blur' },
+    { type: 'email', message: 'Please enter a valid email address', trigger: ['blur', 'change'] }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+    { required: true, message: 'Please enter your password', trigger: 'blur' },
+    { min: 6, message: 'Password must be at least 6 characters', trigger: 'blur' }
   ],
   confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
+    { required: true, message: 'Please confirm your password', trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' }
   ],
   nickName: [
-    { required: true, message: '请输入昵称', trigger: 'blur' }
+    { required: true, message: 'Please enter your display name', trigger: 'blur' }
   ]
 };
 
@@ -118,14 +128,14 @@ const handleRegister = async () => {
       phoneNumber: registerForm.phoneNumber
     });
 
-    ElMessage.success('注册成功，请登录');
+    ElMessage.success('Registration successful! Please sign in.');
     router.push('/login');
   } catch (error: any) {
-    console.error('注册失败:', error);
+    console.error('Registration failed:', error);
     if (error.message) {
       ElMessage.error(error.message);
     } else {
-      ElMessage.error('注册失败，请重试');
+      ElMessage.error('Registration failed, please try again');
     }
   } finally {
     loading.value = false;
@@ -133,43 +143,74 @@ const handleRegister = async () => {
 };
 </script>
 
-<style scoped>
-.register-container {
+<style lang="scss" scoped>
+.auth-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-2xl);
+  box-shadow: var(--shadow-xl);
+  max-height: calc(100vh - var(--space-2xl) * 2);
+  overflow-y: auto;
+}
+
+.auth-card-header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.auth-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-xl);
+  background: var(--color-accent-light);
+  color: var(--color-accent);
   display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-md);
+}
+
+.auth-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+}
+
+.auth-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  height: 44px;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+}
+
+.auth-links {
+  text-align: center;
+  display: flex;
+  gap: var(--space-xs);
   justify-content: center;
   align-items: center;
-  min-height: 100vh;  /* 修改为min-height以适应没有导航栏的情况 */
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;  /* 添加一些内边距，防止在小屏幕上触顶触底 */
 }
 
-.register-form {
-  width: 100%;
-  max-width: 400px;  /* 限制最大宽度 */
-  padding: 30px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+.auth-link-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
 }
 
-.register-form h2 {
-  text-align: center;
-  margin-bottom: 30px;
-  color: #333;
-  font-weight: 600;
-}
-
-.login-link {
-  text-align: center;
-  margin-top: 20px;
-}
-
-.login-link a {
-  color: #409EFF;
+.auth-link {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
   text-decoration: none;
-}
 
-.login-link a:hover {
-  text-decoration: underline;
+  &:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+  }
 }
 </style>

@@ -1,268 +1,291 @@
 <template>
   <div class="home-page">
-    <main class="main-content-home">
-      <div class="hero-section">
-        <div class="container">
-          <h2>欢迎来到 River Blog</h2>
-          <p>这里是一个分享知识和技术的平台。</p>
-          <el-button type="primary" @click="$router.push('/blog')">开始阅读</el-button>
-        </div>
-      </div>
+    <!-- Hero Section -->
+    <HeroSection
+      title="Welcome to River Blog"
+      subtitle="A place to share knowledge, explore technology, and connect with fellow developers."
+      :show-cta="true"
+      cta-text="Start Reading"
+      cta-link="/blog"
+    />
 
-      <section v-if="userStore.isLoggedIn" class="dashboard-stats">
-        <div class="container">
-          <h3>仪表盘统计</h3>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <h4>文章总数</h4>
-              <p>{{ dashboard.totalArticles.value }}</p>
-            </div>
-            <div class="stat-card">
-              <h4>评论总数</h4>
-              <p>{{ dashboard.totalComments.value }}</p>
-            </div>
-            <div class="stat-card">
-              <h4>访问量</h4>
-              <p>{{ dashboard.totalViews.value }}</p>
-            </div>
+    <!-- Stats Dashboard (Logged In) -->
+    <section v-if="userStore.isLoggedIn" class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card stat-card-blue">
+          <div class="stat-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-number">{{ dashboard.totalArticles.value }}</span>
+            <span class="stat-label">Articles</span>
           </div>
         </div>
-      </section>
-      
-      <div v-else class="featured-posts container">
-        <h3>精选文章</h3>
-        <div class="posts-grid">
-          <div class="post-card" v-for="post in featuredPosts" :key="post.id">
-            <img :src="post.cover" :alt="post.title" class="post-cover">
-            <div class="post-content">
-              <h4>{{ post.title }}</h4>
-              <p class="post-excerpt">{{ post.excerpt }}</p>
-              <div class="post-meta">
-                <span class="date">{{ formatDate(post.date) }}</span>
-                <span class="tags">{{ post.tags.join(', ') }}</span>
-              </div>
-            </div>
+        <div class="stat-card stat-card-green">
+          <div class="stat-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-number">{{ dashboard.totalComments.value }}</span>
+            <span class="stat-label">Comments</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card-purple">
+          <div class="stat-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-number">{{ dashboard.totalViews.value }}</span>
+            <span class="stat-label">Views</span>
           </div>
         </div>
       </div>
-    </main>
-    
-    <footer class="footer">
-      <div class="container">
-        <p>&copy; 2024 River Blog. All rights reserved.</p>
+    </section>
+
+    <!-- Featured Articles -->
+    <section class="featured-section">
+      <div class="section-header">
+        <h2 class="section-title">Featured Articles</h2>
+        <p class="section-subtitle">Hand-picked articles worth your time</p>
       </div>
-    </footer>
+      <div class="articles-grid">
+        <ArticleCard
+          v-for="post in featuredPosts"
+          :key="post.id"
+          :id="post.id"
+          :title="post.title"
+          :excerpt="post.excerpt"
+          :cover-image="post.coverImage"
+          :date="post.date"
+          :tags="post.tags"
+          :author="post.author"
+          :read-time="post.readTime"
+          :category="post.category"
+        />
+      </div>
+    </section>
+
+    <!-- Latest Articles -->
+    <section class="latest-section">
+      <div class="section-header">
+        <h2 class="section-title">Latest Posts</h2>
+        <p class="section-subtitle">Stay up to date with the newest content</p>
+      </div>
+      <div class="articles-grid">
+        <ArticleCard
+          v-for="post in latestPosts"
+          :key="post.id"
+          :id="post.id"
+          :title="post.title"
+          :excerpt="post.excerpt"
+          :cover-image="post.coverImage"
+          :date="post.date"
+          :tags="post.tags"
+          :author="post.author"
+          :read-time="post.readTime"
+          :category="post.category"
+        />
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user'
-import { useDashboard } from '@/composables/usePermission'
+import { ref, onMounted } from 'vue';
+import { useUserStore } from '@/stores/user';
+import { useDashboard } from '@/composables/usePermission';
+import ArticleCard from '@/components/ArticleCard.vue';
+import HeroSection from '@/components/HeroSection.vue';
 
-// 使用用户状态管理
-const userStore = useUserStore()
-const router = useRouter()
-
-// 使用组合式函数
-const dashboard = useDashboard()
+const userStore = useUserStore();
+const dashboard = useDashboard();
 
 interface Post {
-  id: number
-  title: string
-  excerpt: string
-  cover: string
-  date: string
-  tags: string[]
+  id: number;
+  title: string;
+  excerpt: string;
+  coverImage: string;
+  date: string;
+  tags: string[];
+  author: string;
+  readTime: string;
+  category: string;
 }
 
 const featuredPosts = ref<Post[]>([
   {
     id: 1,
-    title: 'Vue 3 实战指南',
-    excerpt: '深入学习 Vue 3 的核心概念和最佳实践...',
-    cover: 'https://picsum.photos/400/200?random=1',
-    date: '2024-01-15',
-    tags: ['Vue', '前端']
+    title: 'Building Modern Web Apps with Vue 3 and TypeScript',
+    excerpt: 'A comprehensive guide to building scalable web applications using Vue 3 Composition API, TypeScript, and modern tooling.',
+    coverImage: 'https://picsum.photos/800/420?random=1',
+    date: '2026-03-15',
+    tags: ['Vue', 'TypeScript'],
+    author: 'River Li',
+    readTime: '8 min read',
+    category: 'Frontend',
   },
   {
     id: 2,
-    title: 'TypeScript 进阶技巧',
-    excerpt: '掌握 TypeScript 的高级特性和应用场景...',
-    cover: 'https://picsum.photos/400/200?random=2',
-    date: '2024-01-10',
-    tags: ['TypeScript', '编程']
+    title: 'The Complete Guide to TypeScript Generics',
+    excerpt: 'Master TypeScript generics with practical examples and real-world patterns used in large-scale applications.',
+    coverImage: 'https://picsum.photos/800/420?random=2',
+    date: '2026-03-10',
+    tags: ['TypeScript', 'Programming'],
+    author: 'River Li',
+    readTime: '12 min read',
+    category: 'Frontend',
   },
   {
     id: 3,
-    title: '现代化前端架构',
-    excerpt: '探讨现代前端项目的架构设计和工程化实践...',
-    cover: 'https://picsum.photos/400/200?random=3',
-    date: '2024-01-05',
-    tags: ['架构', '工程化']
-  }
-])
+    title: 'Modern Frontend Architecture Patterns',
+    excerpt: 'Explore the latest architectural patterns for building maintainable and performant frontend applications at scale.',
+    coverImage: 'https://picsum.photos/800/420?random=3',
+    date: '2026-03-05',
+    tags: ['Architecture', 'Engineering'],
+    author: 'River Li',
+    readTime: '10 min read',
+    category: 'Architecture',
+  },
+]);
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('zh-CN')
-}
+const latestPosts = ref<Post[]>([
+  {
+    id: 4,
+    title: 'Getting Started with Docker for Frontend Developers',
+    excerpt: 'Learn how to containerize your frontend applications and streamline your development workflow with Docker.',
+    coverImage: 'https://picsum.photos/800/420?random=4',
+    date: '2026-02-28',
+    tags: ['Docker', 'DevOps'],
+    author: 'River Li',
+    readTime: '6 min read',
+    category: 'DevOps',
+  },
+  {
+    id: 5,
+    title: 'State Management with Pinia in Vue 3',
+    excerpt: 'A deep dive into Pinia, the official state management library for Vue 3, with practical examples and best practices.',
+    coverImage: 'https://picsum.photos/800/420?random=5',
+    date: '2026-02-20',
+    tags: ['Vue', 'Pinia'],
+    author: 'River Li',
+    readTime: '9 min read',
+    category: 'Frontend',
+  },
+  {
+    id: 6,
+    title: 'CSS Grid and Flexbox: When to Use Which',
+    excerpt: 'Understanding the differences between CSS Grid and Flexbox, and knowing which layout tool to use for different scenarios.',
+    coverImage: 'https://picsum.photos/800/420?random=6',
+    date: '2026-02-15',
+    tags: ['CSS', 'Layout'],
+    author: 'River Li',
+    readTime: '7 min read',
+    category: 'Frontend',
+  },
+]);
 
 onMounted(async () => {
-  // 如果用户已登录，尝试加载仪表盘数据
   if (userStore.isLoggedIn) {
     try {
-      await userStore.loadDashboardStats()
+      await userStore.loadDashboardStats();
     } catch (error: any) {
-      // 如果是 401 错误，不要显示错误信息（响应拦截器已经处理了）
       if (error.response?.status !== 401) {
-        console.error('加载仪表盘数据失败:', error)
+        console.error('Failed to load dashboard stats:', error);
       }
     }
   }
-  
-  // 显示当前登录状态（用于调试）
-  console.log('=== 首页加载完成 ===');
-  console.log('Token:', localStorage.getItem('auth_token') ? '✅ 存在' : '❌ 不存在');
-  console.log('用户信息:', userStore.userInfo);
-  console.log('isLoggedIn:', userStore.isLoggedIn);
-  console.log('====================');
-  
-  console.log('博客首页已加载')
-})
+});
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .home-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  animation: fade-in 0.5s ease;
 }
 
-.main-content-home {
-  flex: 1;
-  margin-top: 60px; /* 为固定定位的导航栏留出空间 */
-}
-
-.hero-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  text-align: center;
-  padding: 4rem 0;
-}
-
-.hero-section h2 {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.hero-section p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
-}
-
-.featured-posts {
-  padding: 4rem 0;
-}
-
-.featured-posts h3 {
-  text-align: center;
-  margin-bottom: 2rem;
-  font-size: 2rem;
-}
-
-.posts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
-}
-
-.post-card {
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease;
-}
-
-.post-card:hover {
-  transform: translateY(-5px);
-}
-
-.post-cover {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-}
-
-.post-content {
-  padding: 1.5rem;
-}
-
-.post-content h4 {
-  margin: 0 0 1rem 0;
-  font-size: 1.3rem;
-}
-
-.post-excerpt {
-  color: #666;
-  margin-bottom: 1rem;
-  line-height: 1.6;
-}
-
-.post-meta {
-  display: flex;
-  justify-content: space-between;
-  color: #999;
-  font-size: 0.9rem;
-}
-
-.dashboard-stats {
-  padding: 4rem 0;
-}
-
-.dashboard-stats h3 {
-  text-align: center;
-  margin-bottom: 2rem;
-  font-size: 2rem;
+// ---------- Stats Section ----------
+.stats-section {
+  @include section;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-lg);
 }
 
 .stat-card {
-  background: white;
-  border-radius: 4px;
-  padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+  border-radius: var(--radius-xl);
+  color: var(--text-inverse);
+
+  &-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+  &-green { background: linear-gradient(135deg, #10b981, #059669); }
+  &-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+}
+
+.stat-icon {
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.stat-number {
+  display: block;
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: var(--font-size-sm);
+  opacity: 0.85;
+}
+
+// ---------- Sections ----------
+.featured-section,
+.latest-section {
+  @include section;
+}
+
+.section-header {
   text-align: center;
+  margin-bottom: var(--space-2xl);
 }
 
-.stat-card h4 {
-  margin: 0 0 0.5rem 0;
-  color: #606266;
+.section-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
 }
 
-.stat-card p {
-  font-size: 1.5rem;
+.section-subtitle {
+  color: var(--text-muted);
+  font-size: var(--font-size-lg);
   margin: 0;
-  color: #303133;
 }
 
-.footer {
-  background: #333;
-  color: white;
-  text-align: center;
-  padding: 2rem 0;
-  margin-top: auto;
+// ---------- Articles Grid ----------
+.articles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xl);
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+@media (max-width: 1023px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .articles-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .articles-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

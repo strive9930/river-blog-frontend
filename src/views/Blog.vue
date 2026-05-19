@@ -1,124 +1,203 @@
 <template>
-  <div class="blog-container">
-    <h1>博客列表</h1>
-    
-    <div class="controls" v-permission="'article:create'">
-      <el-button type="primary" @click="createArticle">写文章</el-button>
+  <div class="blog-page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Blog</h1>
+        <p class="page-desc">Explore articles about frontend, backend, and software engineering.</p>
+      </div>
+      <el-button
+        v-permission="'article:create'"
+        type="primary"
+        size="large"
+        @click="createArticle"
+        class="write-btn"
+      >
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="margin-right: 6px;">
+          <path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Write Article
+      </el-button>
     </div>
-    
-    <el-table :data="articles" style="width: 100%; margin-top: 20px;">
-      <el-table-column prop="id" label="ID" width="100" />
-      <el-table-column prop="title" label="标题" />
-      <el-table-column prop="author" label="作者" />
-      <el-table-column prop="date" label="日期" width="150" />
-      <el-table-column label="操作" width="200">
-        <template #default="scope">
-          <el-button size="small" @click="viewArticle(scope.row.id)">查看</el-button>
-          
-          <el-button 
-            v-permission="'article:edit'" 
-            size="small" 
-            type="primary" 
-            @click="editArticle(scope.row.id)"
-          >
-            编辑
-          </el-button>
-          
-          <el-button 
-            v-permission="'article:delete'" 
-            size="small" 
-            type="danger" 
-            @click="deleteArticle(scope.row.id)"
-          >
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="articles-grid">
+      <div v-for="n in 6" :key="n" class="skeleton-card">
+        <div class="skeleton skeleton-image"></div>
+        <div class="skeleton-body">
+          <div class="skeleton skeleton-title"></div>
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text short"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Articles Grid -->
+    <div v-else-if="articles.length" class="articles-grid">
+      <ArticleCard
+        v-for="article in articles"
+        :key="article.id"
+        :id="article.id"
+        :title="article.title"
+        :excerpt="article.excerpt"
+        :cover-image="article.coverImage"
+        :date="article.date"
+        :tags="article.tags"
+        :author="article.author"
+        :read-time="article.readTime"
+        :category="article.category"
+      />
+    </div>
+
+    <!-- Empty State -->
+    <el-empty v-else description="No articles yet. Check back soon!" />
+
+    <!-- Pagination -->
+    <div v-if="total > 6" class="pagination-wrapper">
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="total"
+        :page-size="6"
+        :current-page="currentPage"
+        @current-change="handlePageChange"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/stores/user';
 import { usePermission } from '@/composables/usePermission';
+import { useArticleStore } from '@/stores/article';
+import ArticleCard from '@/components/ArticleCard.vue';
 
-const router = useRouter();
 const userStore = useUserStore();
 const { hasPermission } = usePermission();
+const articleStore = useArticleStore();
 
-// 模拟文章数据
-const articles = ref([
-  { id: 1, title: 'Vue 3 新特性详解', author: 'RiverLi', date: '2026-03-10' },
-  { id: 2, title: 'TypeScript 实践指南', author: 'RiverLi', date: '2026-03-08' },
-  { id: 3, title: '前端工程化思考', author: 'Guest Author', date: '2026-03-05' },
-]);
+const articles = ref(articleStore.articles);
+const loading = ref(false);
+const total = ref(0);
+const currentPage = ref(1);
+
+const loadArticles = async () => {
+  loading.value = true;
+  try {
+    await articleStore.fetchArticles();
+    articles.value = articleStore.articles;
+    total.value = articleStore.total;
+  } finally {
+    loading.value = false;
+  }
+};
 
 const createArticle = () => {
   if (!hasPermission('article:create')) {
-    ElMessage.warning('您没有权限创建文章');
+    ElMessage.warning('You do not have permission to create articles');
     return;
   }
-  ElMessage.success('进入创建文章页面');
-  // 实际项目中应该跳转到创建文章页面
+  ElMessage.success('Navigate to article editor');
 };
 
-const viewArticle = (id: number) => {
-  router.push(`/article/${id}`);
-};
-
-const editArticle = (id: number) => {
-  if (!hasPermission('article:edit')) {
-    ElMessage.warning('您没有权限编辑文章');
-    return;
-  }
-  ElMessage.success(`编辑文章 ${id}`);
-  // 实际项目中应该跳转到编辑文章页面
-};
-
-const deleteArticle = async (id: number) => {
-  if (!hasPermission('article:delete')) {
-    ElMessage.warning('您没有权限删除文章');
-    return;
-  }
-  
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除这篇文章吗？',
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
-    
-    // 模拟删除操作
-    articles.value = articles.value.filter(article => article.id !== id);
-    ElMessage.success('删除成功');
-  } catch {
-    // 用户取消删除
-  }
+const handlePageChange = (page: number) => {
+  currentPage.value = page;
+  loadArticles();
 };
 
 onMounted(() => {
-  // 检查用户权限
+  loadArticles();
   if (userStore.isLoggedIn && !userStore.permissions.length) {
     userStore.loadUserInfo().catch(err => {
-      console.error('加载用户信息失败:', err);
+      console.error('Failed to load user info:', err);
     });
   }
 });
 </script>
 
-<style scoped>
-.blog-container {
-  padding: 20px;
+<style lang="scss" scoped>
+.blog-page {
+  animation: fade-in 0.5s ease;
 }
 
-.controls {
-  margin-bottom: 20px;
+// ---------- Page Header ----------
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-2xl);
+}
+
+.page-title {
+  font-size: var(--font-size-4xl);
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+}
+
+.page-desc {
+  color: var(--text-muted);
+  font-size: var(--font-size-lg);
+  margin: 0;
+}
+
+.write-btn {
+  flex-shrink: 0;
+}
+
+// ---------- Articles Grid ----------
+.articles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-xl);
+}
+
+// ---------- Skeleton ----------
+.skeleton-card {
+  @include card-base;
+  overflow: hidden;
+}
+
+.skeleton-image {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+
+.skeleton-body {
+  padding: var(--space-lg);
+}
+
+.skeleton-title {
+  height: 24px;
+  width: 80%;
+  margin-bottom: var(--space-sm);
+}
+
+.skeleton-text {
+  height: 14px;
+  width: 100%;
+  margin-bottom: var(--space-sm);
+
+  &.short {
+    width: 60%;
+  }
+}
+
+// ---------- Pagination ----------
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-2xl);
+}
+
+@media (max-width: 767px) {
+  .page-header {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .articles-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

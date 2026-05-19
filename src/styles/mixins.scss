@@ -1,0 +1,79 @@
+// ============================================
+// River Blog — SCSS Mixins
+// ============================================
+
+// ---------- Glass Morphism ----------
+@mixin glass-morphism($blur: 16px, $bg-opacity: 0.72) {
+  background: rgba(255, 255, 255, $bg-opacity);
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+// ---------- Card ----------
+@mixin card-base {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+@mixin card-hover {
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+  }
+}
+
+@mixin card {
+  @include card-base;
+  @include card-hover;
+}
+
+// ---------- Responsive Breakpoints ----------
+@mixin responsive($breakpoint) {
+  @if $breakpoint == sm {
+    @media (min-width: 640px) { @content; }
+  } @else if $breakpoint == md {
+    @media (min-width: 768px) { @content; }
+  } @else if $breakpoint == lg {
+    @media (min-width: 1024px) { @content; }
+  } @else if $breakpoint == xl {
+    @media (min-width: 1280px) { @content; }
+  }
+}
+
+// ---------- Text Truncation ----------
+@mixin line-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: $lines;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ---------- Container ----------
+@mixin container {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+// ---------- Section ----------
+@mixin section($padding: var(--space-3xl)) {
+  padding: $padding 0;
+}
+
+// ---------- Gradient Text ----------
+@mixin gradient-text($from: var(--color-primary), $to: var(--color-accent)) {
+  background: linear-gradient(135deg, $from, $to);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// ---------- Focus Ring ----------
+@mixin focus-ring {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

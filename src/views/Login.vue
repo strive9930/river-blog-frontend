@@ -1,39 +1,47 @@
 <template>
-  <div class="login-container">
-    <div class="login-form">
-      <h2>用户登录</h2>
-      <el-form :model="loginForm" :rules="rules" ref="loginFormRef">
-        <el-form-item prop="email">
-          <el-input 
-            v-model="loginForm.email" 
-            placeholder="邮箱" 
-            prefix-icon="User"
-          />
-        </el-form-item>
-        <el-form-item prop="password">
-          <el-input 
-            v-model="loginForm.password" 
-            type="password" 
-            placeholder="密码" 
-            prefix-icon="Lock"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button 
-            type="primary" 
-            @click="handleLogin" 
-            :loading="loading"
-            style="width: 100%"
-          >
-            登录
-          </el-button>
-        </el-form-item>
-        <div class="form-links">
-          <router-link to="/register" class="link">注册账号</router-link>
-          <router-link to="/forgot-password" class="link">忘记密码？</router-link>
-        </div>
-      </el-form>
+  <div class="auth-card">
+    <div class="auth-card-header">
+      <div class="auth-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+      </div>
+      <h2 class="auth-title">Welcome Back</h2>
+      <p class="auth-subtitle">Sign in to your account to continue</p>
     </div>
+    <el-form :model="loginForm" :rules="rules" ref="loginFormRef" size="large">
+      <el-form-item prop="email">
+        <el-input
+          v-model="loginForm.email"
+          placeholder="Email address"
+          prefix-icon="User"
+        />
+      </el-form-item>
+      <el-form-item prop="password">
+        <el-input
+          v-model="loginForm.password"
+          type="password"
+          placeholder="Password"
+          prefix-icon="Lock"
+          show-password
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button
+          type="primary"
+          @click="handleLogin"
+          :loading="loading"
+          class="auth-submit-btn"
+        >
+          Sign In
+        </el-button>
+      </el-form-item>
+      <div class="auth-links">
+        <router-link to="/register" class="auth-link">Create account</router-link>
+        <router-link to="/forgot-password" class="auth-link">Forgot password?</router-link>
+      </div>
+    </el-form>
   </div>
 </template>
 
@@ -55,12 +63,12 @@ const loading = ref(false);
 
 const rules = {
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
+    { required: true, message: 'Please enter your email', trigger: 'blur' },
+    { type: 'email', message: 'Please enter a valid email address', trigger: ['blur', 'change'] }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+    { required: true, message: 'Please enter your password', trigger: 'blur' },
+    { min: 6, message: 'Password must be at least 6 characters', trigger: 'blur' }
   ]
 };
 
@@ -71,32 +79,29 @@ const handleLogin = async () => {
     await loginFormRef.value.validate();
     loading.value = true;
 
-    console.log('[登录] 步骤 1: 开始登录...');
-    
-    // 登录接口已经返回完整数据（token + 用户信息 + 权限 + 菜单）
+    console.log('[Login] Step 1: Starting login...');
+
     const result = await userStore.login({
       email: loginForm.email,
       password: loginForm.password
     });
 
-    console.log('[登录] 步骤 2: ✅ 登录成功');
-    console.log('[登录] 完整响应:', result);
-    console.log('[登录] Token:', result?.data?.token);
-    console.log('[登录] localStorage 检查:', localStorage.getItem('auth_token') ? '✅ 已保存' : '❌ 未保存');
-    
-    ElMessage.success('登录成功');
-    
-    // 登录后直接跳转，不需要再获取用户信息
-    // 因为登录接口已经返回了所有必要的数据
-    console.log('[登录] 步骤 3: 准备跳转到首页...');
+    console.log('[Login] Step 2: Login successful');
+    console.log('[Login] Full response:', result);
+    console.log('[Login] Token:', result?.data?.token);
+    console.log('[Login] localStorage check:', localStorage.getItem('auth_token') ? 'Saved' : 'Not saved');
+
+    ElMessage.success('Login successful');
+
+    console.log('[Login] Step 3: Redirecting to home...');
     await router.replace('/');
-    console.log('[登录] ✅ 跳转完成');
+    console.log('[Login] Redirect complete');
   } catch (error: any) {
-    console.error('[登录] ❌ 登录失败:', error);
+    console.error('[Login] Login failed:', error);
     if (error.message) {
       ElMessage.error(error.message);
     } else {
-      ElMessage.error('登录失败，请检查用户名和密码');
+      ElMessage.error('Login failed, please check your credentials');
     }
   } finally {
     loading.value = false;
@@ -104,45 +109,64 @@ const handleLogin = async () => {
 };
 </script>
 
-<style scoped>
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+<style lang="scss" scoped>
+.auth-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-2xl);
+  box-shadow: var(--shadow-xl);
 }
 
-.login-form {
-  width: 100%;
-  max-width: 400px;
-  padding: 30px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-.login-form h2 {
+.auth-card-header {
   text-align: center;
-  margin-bottom: 30px;
-  color: #333;
-  font-weight: 600;
+  margin-bottom: var(--space-2xl);
 }
 
-.form-links {
+.auth-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-xl);
+  background: var(--color-primary-50);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-md);
+}
+
+.auth-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+}
+
+.auth-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  height: 44px;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+}
+
+.auth-links {
   display: flex;
   justify-content: space-between;
-  margin-top: 20px;
 }
 
-.form-links .link {
-  color: #409EFF;
+.auth-link {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
   text-decoration: none;
-  font-size: 14px;
-}
 
-.form-links .link:hover {
-  text-decoration: underline;
+  &:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+  }
 }
 </style>

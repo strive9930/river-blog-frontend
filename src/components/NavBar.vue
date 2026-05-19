@@ -1,147 +1,213 @@
 <template>
-  <header class="navbar-header">
-    <div class="navbar-container">
-      <div class="logo-section" 
-           @mouseenter="showMobileMenuOnHover = true" 
-           @mouseleave="handleMouseLeave"
-           :class="{ 'hovered': showMobileMenuOnHover && isSmallScreen }">
-        <router-link to="/" class="logo-link">
-          <span class="logo-text">{{ siteTitle }}</span>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <!-- Logo -->
+      <router-link to="/" class="navbar-logo">
+        <span class="logo-text">{{ siteTitle }}</span>
+      </router-link>
+
+      <!-- Desktop Navigation -->
+      <nav class="navbar-nav">
+        <!-- Static menu items -->
+        <router-link
+          v-for="item in staticNavItems"
+          :key="item.name"
+          :to="item.path"
+          class="nav-link"
+          active-class=""
+          :class="{ active: isActiveRoute(item.path) }"
+        >
+          {{ item.name }}
         </router-link>
-        
-        <!-- 悬浮菜单 -->
-        <nav class="hover-menu" v-if="showMobileMenuOnHover && isSmallScreen">
-          <ul class="hover-nav-list">
-            <!-- 固定菜单项 -->
-            <li class="nav-item" v-for="item in staticNavItems" :key="item.name">
-              <router-link 
-                :to="item.path" 
-                class="nav-link" 
-                :class="{ active: isActiveRoute(item.path) }"
-                @click="hideHoverMenu"
-              >
-                {{ item.name }}
-              </router-link>
-            </li>
-            
-            <!-- 动态菜单项（如果用户已登录） -->
-            <li class="nav-item" v-for="item in dynamicMenuItems" :key="item.name">
-              <router-link 
-                :to="item.path" 
-                class="nav-link" 
-                :class="{ active: isActiveRoute(item.path) }"
-                @click="hideHoverMenu"
-              >
-                {{ item.title || item.name }} <!-- 显示title字段，如果没有则显示name字段 -->
-              </router-link>
-            </li>
-            
-            <!-- 静态菜单项（如果用户未登录） -->
-            <template v-if="!userStore.isLoggedIn">
-              <li class="nav-item">
-                <router-link to="/login" class="nav-link btn login-btn" @click="hideHoverMenu">登录</router-link>
-              </li>
-              <li class="nav-item">
-                <router-link to="/register" class="nav-link btn register-btn" @click="hideHoverMenu">注册</router-link>
-              </li>
-            </template>
-            
-            <!-- 用户信息（如果已登录） -->
-            <li class="user-info" v-if="userStore.isLoggedIn">
-              <div class="user-trigger" @click="toggleUserDropdown">
-                <div class="user-profile">
-                  <img 
-                    :src="userAvatar || userStore.userInfo?.avatar || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'" 
-                    :alt="userStore.userInfo?.nickName || '用户头像'"
-                    class="user-avatar"
-                  />
-                  <span class="username">{{ userStore.userInfo?.nickName || userStore.userInfo?.email || '用户' }}</span>
-                </div>
-              </div>
-              
-              <div class="dropdown-menu" v-show="userDropdownOpen">
-                <ul class="dropdown-list">
-                  <li><a href="#" @click.prevent="handleLogout">退出登录</a></li>
-                </ul>
-              </div>
-            </li>
-          </ul>
-        </nav>
-      </div>
 
-      <div class="nav-menu-toggle" @click="toggleMobileMenu" v-if="!isSmallScreenHoverEnabled">
-        <div class="hamburger-menu">
-          <span :class="{ 'line-1': true, 'close-line-1': mobileMenuOpen }"></span>
-          <span :class="{ 'line-2': true, 'close-line-2': mobileMenuOpen }"></span>
-          <span :class="{ 'line-3': true, 'close-line-3': mobileMenuOpen }"></span>
-        </div>
-      </div>
-
-      <nav class="nav-menu" :class="{ 'mobile-open': mobileMenuOpen }" v-if="!isSmallScreenHoverEnabled">
-        <ul class="nav-list">
-          <!-- 固定菜单项 -->
-          <li class="nav-item" v-for="item in staticNavItems" :key="item.name">
-            <router-link 
-              :to="item.path" 
-              class="nav-link" 
-              :class="{ active: isActiveRoute(item.path) }"
+        <!-- Visible top-level dynamic menus -->
+        <template v-for="menu in visibleTopLevelMenus" :key="menu.id">
+          <!-- Has children: dropdown -->
+          <div
+            v-if="menu.children?.length"
+            class="nav-dropdown"
+            @mouseenter="openSubmenu(menu.id)"
+            @mouseleave="scheduleSubmenuClose(menu.id)"
+          >
+            <button class="nav-link nav-dropdown-trigger" :class="{ active: isMenuActive(menu) }">
+              <span>{{ menu.title || menu.name }}</span>
+              <svg width="10" height="10" viewBox="0 0 10 10" class="dropdown-arrow" :class="{ open: openSubmenuId === menu.id }">
+                <path d="M3 4l2 2 2-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div
+              v-show="openSubmenuId === menu.id"
+              class="submenu-dropdown"
+              @mouseenter="cancelSubmenuClose"
+              @mouseleave="scheduleSubmenuClose(menu.id)"
             >
-              {{ item.name }}
-            </router-link>
-          </li>
-          
-          <!-- 动态菜单项（如果用户已登录） -->
-          <li class="nav-item" v-for="item in dynamicMenuItems" :key="item.name">
-            <router-link 
-              :to="item.path" 
-              class="nav-link" 
-              :class="{ active: isActiveRoute(item.path) }"
-            >
-              {{ item.title || item.name }} <!-- 显示title字段，如果没有则显示name字段 -->
-            </router-link>
-          </li>
-          
-          <!-- 静态菜单项（如果用户未登录） -->
-          <template v-if="!userStore.isLoggedIn">
-            <li class="nav-item">
-              <router-link to="/login" class="nav-link btn login-btn">登录</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/register" class="nav-link btn register-btn">注册</router-link>
-            </li>
-          </template>
-          
-          <!-- 用户信息（如果已登录） -->
-          <li class="user-info" v-if="userStore.isLoggedIn">
-            <div class="user-dropdown">
-              <div class="user-trigger" @click="toggleUserDropdown">
-                <div class="user-profile">
-                  <img 
-                    :src="userAvatar || userStore.userInfo?.avatar || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'" 
-                    :alt="userStore.userInfo?.nickName || '用户头像'"
-                    class="user-avatar"
-                  />
-                  <span class="username">{{ userStore.userInfo?.nickName || userStore.userInfo?.email || '用户' }}</span>
-                </div>
-              </div>
-              
-              <div class="dropdown-menu" v-show="userDropdownOpen">
-                <ul class="dropdown-list">
-                  <li><a href="#" @click.prevent="handleLogout">退出登录</a></li>
-                </ul>
-              </div>
+              <router-link
+                v-for="child in menu.children"
+                :key="child.id"
+                :to="resolveMenuPath(child)"
+                class="submenu-link"
+                active-class=""
+                :class="{ active: isActiveRoute(resolveMenuPath(child)) }"
+                @click="closeAllDropdowns"
+              >
+                <span v-if="child.icon" class="submenu-icon">{{ child.icon }}</span>
+                {{ child.title || child.name }}
+              </router-link>
             </div>
-          </li>
-        </ul>
+          </div>
+          <!-- No children: direct link -->
+          <router-link
+            v-else
+            :to="resolveMenuPath(menu)"
+            class="nav-link"
+            active-class=""
+            :class="{ active: isActiveRoute(resolveMenuPath(menu)) }"
+          >
+            {{ menu.title || menu.name }}
+          </router-link>
+        </template>
+
+        <!-- More dropdown (overflow) -->
+        <div v-if="hiddenTopLevelMenus.length" ref="moreMenuRef" class="nav-dropdown">
+          <button class="nav-link nav-more-btn" @click="toggleMoreMenu">
+            <span>More</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" class="dropdown-arrow" :class="{ open: showMoreMenu }">
+              <path d="M3 4l2 2 2-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div v-show="showMoreMenu" class="more-dropdown">
+            <template v-for="menu in hiddenTopLevelMenus" :key="menu.id">
+              <!-- Parent with children: grouped -->
+              <template v-if="menu.children?.length">
+                <div class="more-group-label">{{ menu.title || menu.name }}</div>
+                <router-link
+                  v-for="child in menu.children"
+                  :key="child.id"
+                  :to="resolveMenuPath(child)"
+                  class="more-dropdown-link more-dropdown-child"
+                  active-class=""
+                  :class="{ active: isActiveRoute(resolveMenuPath(child)) }"
+                  @click="showMoreMenu = false"
+                >
+                  {{ child.title || child.name }}
+                </router-link>
+              </template>
+              <!-- No children: direct link -->
+              <router-link
+                v-else
+                :to="resolveMenuPath(menu)"
+                class="more-dropdown-link"
+                active-class=""
+                :class="{ active: isActiveRoute(resolveMenuPath(menu)) }"
+                @click="showMoreMenu = false"
+              >
+                {{ menu.title || menu.name }}
+              </router-link>
+            </template>
+          </div>
+        </div>
+
+        <div class="navbar-actions">
+          <!-- Guest: Login / Register -->
+          <template v-if="!userStore.isLoggedIn">
+            <router-link to="/login" class="btn btn-ghost">Login</router-link>
+            <router-link to="/register" class="btn btn-primary">Sign Up</router-link>
+          </template>
+
+          <!-- Logged In: User Menu -->
+          <div v-else ref="userMenuRef" class="user-menu">
+            <button class="user-trigger" @click="toggleUserDropdown">
+              <img
+                :src="userStore.userInfo?.avatar || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
+                :alt="userStore.userInfo?.nickName || 'User'"
+                class="user-avatar"
+              />
+              <span class="user-name">{{ userStore.userInfo?.nickName || userStore.userInfo?.email || 'User' }}</span>
+              <svg width="10" height="10" viewBox="0 0 10 10" class="dropdown-arrow" :class="{ open: userDropdownOpen }">
+                <path d="M3 4l2 2 2-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div v-show="userDropdownOpen" class="user-dropdown">
+              <router-link to="/" class="user-dropdown-link">Dashboard</router-link>
+              <a href="#" class="user-dropdown-link logout" @click.prevent="handleLogout">Sign Out</a>
+            </div>
+          </div>
+        </div>
       </nav>
+
+      <!-- Mobile Hamburger -->
+      <button class="hamburger" :class="{ open: mobileMenuOpen }" @click="toggleMobileMenu" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
-    
-    <!-- 移动端遮罩层 -->
-    <div 
-      class="mobile-overlay" 
-      v-if="!isSmallScreenHoverEnabled && showMobileMenuOnHover && mobileMenuOpen" 
-      @click="toggleMobileMenu"
-    ></div>
+
+    <!-- Mobile Menu -->
+    <transition name="mobile-slide">
+      <div v-show="mobileMenuOpen" class="mobile-menu">
+        <!-- Static items -->
+        <router-link
+          v-for="item in staticNavItems"
+          :key="item.name"
+          :to="item.path"
+          class="mobile-link"
+          active-class=""
+          :class="{ active: isActiveRoute(item.path) }"
+          @click="mobileMenuOpen = false"
+        >
+          {{ item.name }}
+        </router-link>
+
+        <!-- Dynamic items with hierarchy -->
+        <template v-for="menu in topLevelMenus" :key="menu.id">
+          <template v-if="menu.children?.length">
+            <button
+              class="mobile-link mobile-parent"
+              :class="{ active: isMenuActive(menu) }"
+              @click="toggleMobileSubmenu(menu.id)"
+            >
+              <span>{{ menu.title || menu.name }}</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" class="mobile-parent-arrow" :class="{ open: expandedMobileSubmenus.has(menu.id) }">
+                <path d="M4 3l2 2 2-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div v-show="expandedMobileSubmenus.has(menu.id)" class="mobile-submenu">
+              <router-link
+                v-for="child in menu.children"
+                :key="child.id"
+                :to="resolveMenuPath(child)"
+                class="mobile-link mobile-sub-link"
+                active-class=""
+                :class="{ active: isActiveRoute(resolveMenuPath(child)) }"
+                @click="mobileMenuOpen = false"
+              >
+                {{ child.title || child.name }}
+              </router-link>
+            </div>
+          </template>
+          <router-link
+            v-else
+            :to="resolveMenuPath(menu)"
+            class="mobile-link"
+            active-class=""
+            :class="{ active: isActiveRoute(resolveMenuPath(menu)) }"
+            @click="mobileMenuOpen = false"
+          >
+            {{ menu.title || menu.name }}
+          </router-link>
+        </template>
+
+        <div class="mobile-divider"></div>
+        <template v-if="!userStore.isLoggedIn">
+          <router-link to="/login" class="mobile-link" @click="mobileMenuOpen = false">Login</router-link>
+          <router-link to="/register" class="mobile-link mobile-link-primary" @click="mobileMenuOpen = false">Sign Up</router-link>
+        </template>
+        <template v-else>
+          <a href="#" class="mobile-link logout" @click.prevent="handleLogout">Sign Out</a>
+        </template>
+      </div>
+    </transition>
   </header>
 </template>
 
@@ -150,578 +216,607 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useUserStore } from '@/stores/user';
 import { useRoute, useRouter } from 'vue-router';
 import type { MenuTree } from '@/types/api';
+import { onClickOutside } from '@/composables/onClickOutside';
 
-// Props
 interface Props {
   siteTitle?: string;
-  logoUrl?: string;
   staticNavItems?: Array<{ name: string; path: string }>;
-  userAvatar?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   siteTitle: 'River Blog',
   staticNavItems: () => [
-    { name: '首页', path: '/' },
-    { name: '博客', path: '/blog' },
-    { name: '关于', path: '/about' }
+    { name: 'Home', path: '/' },
+    { name: 'Blog', path: '/blog' },
+    { name: 'About', path: '/about' },
   ],
-  userAvatar: ''
 });
 
-// 响应式数据
-const mobileMenuOpen = ref(false);
-const userDropdownOpen = ref(false);
-const dynamicMenuItems = ref<Array<{ name: string; path: string; title?: string }>>([]);
-const showMobileMenuOnHover = ref(false);
-const hoverTimeout = ref<number | null>(null);
-
-// Store 和路由
 const userStore = useUserStore();
 const route = useRoute();
 const router = useRouter();
 
-// 检测是否为移动端/小屏幕
-const isSmallScreen = computed(() => {
-  return window.innerWidth < 1024; // 改为1024px，更符合常见响应式断点
-});
+// State
+const mobileMenuOpen = ref(false);
+const userDropdownOpen = ref(false);
+const showMoreMenu = ref(false);
+const openSubmenuId = ref<string | null>(null);
+const expandedMobileSubmenus = ref<Set<string>>(new Set());
+const topLevelMenus = ref<MenuTree[]>([]);
 
-// 是否启用了小屏hover模式
-const isSmallScreenHoverEnabled = computed(() => {
-  return isSmallScreen.value && !mobileMenuOpen.value;
-});
+let submenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
-// 隐藏悬浮菜单
-const hideHoverMenu = () => {
-  showMobileMenuOnHover.value = false;
+// Computed
+const maxVisibleTopLevel = 4;
+const visibleTopLevelMenus = computed(() => topLevelMenus.value.slice(0, maxVisibleTopLevel));
+const hiddenTopLevelMenus = computed(() => topLevelMenus.value.slice(maxVisibleTopLevel));
+
+// Helpers
+const resolveMenuPath = (menu: MenuTree): string => {
+  return menu.path.startsWith('/') ? menu.path : `/${menu.path}`;
 };
 
-// 处理鼠标离开事件
-const handleMouseLeave = () => {
-  // 设置一个延迟，防止鼠标经过下拉菜单时消失
-  if (hoverTimeout.value) {
-    clearTimeout(hoverTimeout.value);
+const isActiveRoute = (path: string) => route.path === path;
+
+const isMenuActive = (menu: MenuTree): boolean => {
+  if (isActiveRoute(resolveMenuPath(menu))) return true;
+  if (menu.children?.length) {
+    return menu.children.some(child => isActiveRoute(resolveMenuPath(child)));
   }
-  hoverTimeout.value = setTimeout(() => {
-    showMobileMenuOnHover.value = false;
-  }, 300); // 300ms 后隐藏菜单
+  return false;
 };
 
-// 清除隐藏菜单的定时器
-const cancelHideMenu = () => {
-  if (hoverTimeout.value) {
-    clearTimeout(hoverTimeout.value);
-    hoverTimeout.value = null;
+// Submenu hover
+const openSubmenu = (id: string) => {
+  cancelSubmenuClose();
+  openSubmenuId.value = id;
+};
+
+const scheduleSubmenuClose = (id: string) => {
+  submenuCloseTimer = setTimeout(() => {
+    if (openSubmenuId.value === id) {
+      openSubmenuId.value = null;
+    }
+  }, 200);
+};
+
+const cancelSubmenuClose = () => {
+  if (submenuCloseTimer) {
+    clearTimeout(submenuCloseTimer);
+    submenuCloseTimer = null;
   }
 };
 
-// 切换移动端菜单
+const closeAllDropdowns = () => {
+  openSubmenuId.value = null;
+  showMoreMenu.value = false;
+  userDropdownOpen.value = false;
+};
+
+// Toggles
 const toggleMobileMenu = () => {
   mobileMenuOpen.value = !mobileMenuOpen.value;
-  
-  // 关闭用户下拉菜单（如果打开）
-  if (userDropdownOpen.value) {
-    userDropdownOpen.value = false;
-  }
-  
-  // 关闭悬浮菜单（如果打开）
-  if (showMobileMenuOnHover.value) {
-    showMobileMenuOnHover.value = false;
-  }
+  closeAllDropdowns();
 };
 
-// 切换用户下拉菜单
 const toggleUserDropdown = () => {
   userDropdownOpen.value = !userDropdownOpen.value;
-  
-  // 关闭移动端菜单（如果打开）
-  if (mobileMenuOpen.value) {
-    mobileMenuOpen.value = false;
-  }
-  
-  // 关闭悬浮菜单（如果打开）
-  if (showMobileMenuOnHover.value) {
-    showMobileMenuOnHover.value = false;
-  }
+  showMoreMenu.value = false;
 };
 
-// 检查当前路由是否激活
-const isActiveRoute = (path: string) => {
-  return route.path === path;
+const toggleMoreMenu = () => {
+  showMoreMenu.value = !showMoreMenu.value;
+  userDropdownOpen.value = false;
 };
 
-// 处理退出登录
+const toggleMobileSubmenu = (id: string) => {
+  const set = expandedMobileSubmenus.value;
+  if (set.has(id)) {
+    set.delete(id);
+  } else {
+    set.add(id);
+  }
+  // Trigger reactivity
+  expandedMobileSubmenus.value = new Set(set);
+};
+
+// Refs for click-outside
+const moreMenuRef = ref<HTMLElement | null>(null);
+const userMenuRef = ref<HTMLElement | null>(null);
+
+onClickOutside(moreMenuRef, () => { showMoreMenu.value = false; });
+onClickOutside(userMenuRef, () => { userDropdownOpen.value = false; });
+
 const handleLogout = async () => {
   await userStore.logout();
+  mobileMenuOpen.value = false;
+  closeAllDropdowns();
   router.push('/login');
 };
 
-// 加载用户菜单
-const loadUserMenus = async () => {
-  try {
-    if (userStore.isLoggedIn) {
-      // 直接使用 store 中的菜单数据（登录时已获取）
-      console.log('[NavBar] 使用 Store 中的菜单数据:', userStore.menus.length, '个菜单');
-      
-      if (userStore.menus && userStore.menus.length > 0) {
-        // 转换菜单数据格式
-        const transformedMenus = transformMenuData(userStore.menus);
-        dynamicMenuItems.value = transformedMenus;
-        console.log('[NavBar] 菜单转换完成:', transformedMenus.length, '个菜单项');
-      } else {
-        console.warn('[NavBar] ⚠️ Store 中没有菜单数据');
-        dynamicMenuItems.value = [];
-      }
-    } else {
-      // 用户未登录时清空动态菜单
-      console.log('[NavBar] 用户未登录，清空菜单');
-      dynamicMenuItems.value = [];
-    }
-  } catch (error) {
-    console.error('[NavBar] ❌ 加载用户菜单失败:', error);
-    // 出错时清空动态菜单，只保留静态菜单
-    dynamicMenuItems.value = [];
+// Menu loading
+const loadUserMenus = () => {
+  if (userStore.isLoggedIn && userStore.menus?.length) {
+    topLevelMenus.value = userStore.menus.filter(m => !m.parentId);
+  } else {
+    topLevelMenus.value = [];
   }
 };
 
-// 转换菜单数据格式
-const transformMenuData = (menus: MenuTree[]): Array<{ name: string; path: string; title?: string }> => {
-  const result: Array<{ name: string; path: string; title?: string }> = [];
-  
-  const traverse = (menuList: MenuTree[], parentPath = '') => {
-    for (const menu of menuList) {
-      const fullPath = parentPath ? `${parentPath}/${menu.path}` : menu.path;
-      
-      result.push({
-        name: menu.name,
-        path: fullPath.startsWith('/') ? fullPath : `/${fullPath}`,
-        title: menu.title || menu.name  // 优先使用title字段，如果没有则使用name字段
-      });
-      
-      if (menu.children && menu.children.length > 0) {
-        traverse(menu.children, fullPath);
-      }
-    }
-  };
-  
-  traverse(menus);
-  return result;
-};
-
-// 监听窗口大小变化
 const handleResize = () => {
   if (window.innerWidth >= 1024) {
     mobileMenuOpen.value = false;
-    userDropdownOpen.value = false;
-    showMobileMenuOnHover.value = false;
   }
 };
 
-// 添加事件监听器
-window.addEventListener('resize', handleResize);
-
-let unwatch: () => void;
-
-// 组件挂载时加载菜单
-onMounted(async () => {
-  console.log('[NavBar] 组件挂载，开始加载菜单...');
-  await loadUserMenus();
-  
-  // 监听用户登录状态变化
-  unwatch = watch(() => userStore.isLoggedIn, async (newVal) => {
-    console.log('[NavBar] 登录状态变化:', newVal);
-    await loadUserMenus();
-  });
-  
-  // 监听菜单数据变化（用于登录后自动更新）
-  watch(() => userStore.menus, (newMenus) => {
-    console.log('[NavBar] 菜单数据变化:', newMenus?.length || 0, '个菜单');
-    if (userStore.isLoggedIn && newMenus && newMenus.length > 0) {
-      loadUserMenus();
-    }
-  }, { deep: true });
+onMounted(() => {
+  loadUserMenus();
+  window.addEventListener('resize', handleResize);
 });
 
-// 组件卸载时清理监听器
+watch(() => userStore.isLoggedIn, loadUserMenus);
+watch(() => userStore.menus, loadUserMenus, { deep: true });
+
 onUnmounted(() => {
-  unwatch?.();
   window.removeEventListener('resize', handleResize);
+  if (submenuCloseTimer) clearTimeout(submenuCloseTimer);
 });
 </script>
 
-<style scoped>
-.navbar-header {
+<style lang="scss" scoped>
+// ---------- Header ----------
+.navbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 0.8rem 0;
-  transition: all 0.3s ease;
+  z-index: var(--z-fixed);
+  @include glass-morphism;
 }
 
-.navbar-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+.navbar-inner {
+  @include container;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
+  height: var(--navbar-height);
 }
 
-.logo-section {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.logo-section.hovered {
-  position: relative;
-}
-
-.logo-link {
-  display: flex;
-  align-items: center;
+// ---------- Logo ----------
+.navbar-logo {
   text-decoration: none;
-  color: #333;
-  font-weight: bold;
-  font-size: 1.5rem;
-  transition: color 0.3s;
-  position: relative;
-  z-index: 1001;
-}
-
-.logo-link:hover {
-  color: #409eff;
+  flex-shrink: 0;
 }
 
 .logo-text {
-  font-size: 1.6rem;
+  font-size: var(--font-size-2xl);
   font-weight: 700;
-  color: #2c3e5e;
-  letter-spacing: -0.5px;
+  @include gradient-text;
 }
 
-.hover-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 250px;
-  background: white;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  overflow: hidden;
-  z-index: 999;
-  margin-top: 0.5rem;
-}
-
-.hover-nav-list {
-  list-style: none;
-  padding: 0.8rem 0;
-  margin: 0;
-}
-
-.nav-menu {
+// ---------- Nav Links ----------
+.navbar-nav {
   display: flex;
   align-items: center;
-}
-
-.nav-list {
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  align-items: center;
-}
-
-.nav-item {
-  margin-left: 1.8rem;
-  position: relative;
+  gap: 2px;
+  margin-left: var(--space-2xl);
 }
 
 .nav-link {
+  position: relative;
   text-decoration: none;
-  color: #34495e;
+  color: var(--text-secondary);
   font-weight: 500;
-  padding: 0.5rem 0.8rem;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-  display: block;
+  font-size: var(--font-size-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--color-primary);
+    border-radius: 2px;
+    transition: all var(--transition-base);
+    transform: translateX(-50%);
+  }
+
+  &:hover::after {
+    width: 60%;
+  }
+
+  &:hover {
+    color: var(--text-primary) !important;
+  }
+
+  &.active {
+    color: var(--color-primary) !important;
+    font-weight: 600;
+
+    &::after { width: 60%; }
+  }
+}
+
+.nav-link.btn:hover::after {
+  width: 0;
+}
+
+// ---------- Dropdown (submenu) ----------
+.nav-dropdown {
   position: relative;
 }
 
-.nav-link:hover {
-  color: #409eff;
-  background-color: rgba(64, 158, 255, 0.1);
+.nav-dropdown-trigger {
+  cursor: pointer;
 }
 
-.nav-link.active {
-  color: #409eff;
+.dropdown-arrow {
+  transition: transform var(--transition-fast);
+  &.open { transform: rotate(180deg); }
+}
+
+.submenu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color-light);
+  min-width: 180px;
+  padding: var(--space-sm);
+  z-index: var(--z-dropdown);
+}
+
+.submenu-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--color-primary-50);
+    color: var(--color-primary);
+  }
+
+  &.active {
+    background: var(--color-primary-50);
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+}
+
+.submenu-icon {
+  opacity: 0.6;
+}
+
+// ---------- More Dropdown ----------
+.nav-more-btn {
+  cursor: pointer;
+}
+
+.more-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color-light);
+  min-width: 200px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+  z-index: var(--z-dropdown);
+}
+
+.more-group-label {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 11px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+
+  &:first-child { margin-top: 0; }
 }
 
-.nav-link.btn {
-  border-radius: 20px;
-  padding: 0.5rem 1.2rem;
-  font-size: 0.9rem;
+.more-dropdown-link {
+  display: block;
+  padding: var(--space-sm) var(--space-md);
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--color-primary-50);
+    color: var(--color-primary);
+  }
+
+  &.active {
+    background: var(--color-primary-50);
+    color: var(--color-primary);
+    font-weight: 600;
+  }
 }
 
-.login-btn {
-  background-color: transparent;
-  border: 1px solid #dcdfe6;
-  color: #606266;
+.more-dropdown-child {
+  padding-left: var(--space-xl);
+  font-size: 13px;
 }
 
-.login-btn:hover {
-  background-color: #ecf5ff;
-  border-color: #c6e2ff;
-  color: #409eff;
+// ---------- Actions ----------
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: var(--space-lg);
 }
 
-.register-btn {
-  background-color: #409eff;
-  color: white !important;
-  border: 1px solid #409eff;
+.btn {
+  text-decoration: none;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  line-height: 1.5;
 }
 
-.register-btn:hover {
-  background-color: #66b1ff;
-  border-color: #66b1ff;
-  color: white !important;
+.btn-ghost {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-color);
+
+  &:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary-100);
+    background: var(--color-primary-50);
+  }
 }
 
-.user-info {
-  margin-left: 1.2rem;
+.btn-primary {
+  color: var(--text-inverse);
+  background: var(--color-primary);
+
+  &:hover {
+    background: var(--color-primary-hover);
+    color: var(--text-inverse);
+  }
+}
+
+// ---------- User Menu ----------
+.user-menu {
   position: relative;
 }
 
 .user-trigger {
   display: flex;
   align-items: center;
+  gap: var(--space-sm);
+  padding: 4px 12px 4px 4px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
   cursor: pointer;
-  padding: 0.3rem;
-  border-radius: 50px;
-  transition: background-color 0.3s;
-  height: 42px;
-}
+  font-family: inherit;
+  transition: background var(--transition-fast);
 
-.user-trigger:hover {
-  background-color: rgba(64, 158, 255, 0.1);
-}
-
-.user-profile {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  &:hover {
+    background: var(--color-gray-100);
+  }
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
   object-fit: cover;
-  border: 2px solid #e4e7ed;
-  flex-shrink: 0;
+  border: 2px solid var(--border-color);
 }
 
-.username {
+.user-name {
+  font-size: var(--font-size-sm);
   font-weight: 500;
-  color: #333;
-  font-size: 0.95rem;
+  color: var(--text-primary);
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.dropdown-menu {
+.user-arrow {
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+  &.open { transform: rotate(180deg); }
+}
+
+.user-dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   right: 0;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  overflow: hidden;
-  z-index: 1000;
-  margin-top: 0.5rem;
-  min-width: 160px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color-light);
+  min-width: 180px;
+  padding: var(--space-sm);
+  z-index: var(--z-dropdown);
 }
 
-.dropdown-list {
-  list-style: none;
-  padding: 0.5rem 0;
-  margin: 0;
-}
-
-.dropdown-list li {
-  margin: 0;
-}
-
-.dropdown-list a {
+.user-dropdown-link {
   display: block;
-  padding: 0.7rem 1.2rem;
+  padding: var(--space-sm) var(--space-md);
   text-decoration: none;
-  color: #333;
-  font-weight: 400;
-  transition: background-color 0.2s;
-  font-size: 0.9rem;
-  width: 100%;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--color-gray-100);
+    color: var(--text-primary);
+  }
+
+  &.logout:hover {
+    background: #fef2f2;
+    color: #ef4444;
+  }
 }
 
-.dropdown-list a:hover {
-  background-color: #f5f7fa;
-}
-
-.nav-menu-toggle {
-  display: flex;
+// ---------- Hamburger ----------
+.hamburger {
+  display: none;
   flex-direction: column;
-  justify-content: space-around;
-  width: 30px;
-  height: 30px;
-  background: transparent;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
-  box-sizing: border-box;
+  padding: 6px;
+  border-radius: var(--radius-md);
+
+  span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    transform-origin: center;
+  }
+
+  &.open {
+    span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    span:nth-child(2) { opacity: 0; }
+    span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  }
 }
 
-.hamburger-menu {
-  width: 24px;
-  height: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+// ---------- Mobile Menu ----------
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-card);
+  padding: var(--space-sm);
+  overflow-y: auto;
+  z-index: var(--z-dropdown);
 }
 
-.hamburger-menu span {
+.mobile-link {
   display: block;
   width: 100%;
-  height: 3px;
-  background: #333;
-  border-radius: 2px;
-  transition: all 0.3s ease;
+  padding: 14px var(--space-md);
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+
+  &:hover, &.active {
+    background: var(--color-primary-50);
+    color: var(--color-primary);
+  }
 }
 
-.line-1.close-line-1 {
-  transform: rotate(45deg) translate(6px, 6px);
+.mobile-parent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.line-2.close-line-2 {
+.mobile-parent-arrow {
+  transition: transform var(--transition-fast);
+  &.open { transform: rotate(180deg); }
+}
+
+.mobile-submenu {
+  padding-left: var(--space-lg);
+  border-left: 2px solid var(--color-gray-100);
+  margin-left: var(--space-md);
+}
+
+.mobile-sub-link {
+  font-size: var(--font-size-sm);
+  padding: 10px var(--space-md);
+}
+
+.mobile-link-primary {
+  color: var(--color-primary) !important;
+  font-weight: 600;
+}
+
+.mobile-link.logout {
+  color: #ef4444 !important;
+  &:hover { background: #fef2f2; }
+}
+
+.mobile-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: var(--space-sm) var(--space-md);
+}
+
+// ---------- Transitions ----------
+.mobile-slide-enter-active,
+.mobile-slide-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.mobile-slide-enter-from,
+.mobile-slide-leave-to {
   opacity: 0;
+  transform: translateY(-8px);
 }
 
-.line-3.close-line-3 {
-  transform: rotate(-45deg) translate(6px, -6px);
-}
-
-.mobile-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 99;
-}
-
-/* 移动端/小屏幕适配 - 在1024px断点切换为汉堡菜单 */
+// ---------- Responsive ----------
 @media (max-width: 1023px) {
-  .navbar-container {
-    padding: 0 1rem;
+  .navbar-nav {
+    display: none;
   }
 
-  .nav-menu {
-    position: fixed;
-    top: 60px;
-    left: 0;
-    right: 0;
-    background: white;
-    box-shadow: 0 10px 15px -5px rgba(0, 0, 0, 0.1);
-    max-height: calc(100vh - 60px);
-    overflow-y: auto;
-    transform: translateY(-100%);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
-    z-index: 99;
-  }
-
-  .nav-menu.mobile-open {
-    transform: translateY(0);
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .nav-list {
-    flex-direction: column;
-    padding: 1rem 0;
-    align-items: stretch;
-  }
-
-  .nav-item {
-    margin: 0;
-    width: 100%;
-    padding: 0.2rem 1.5rem;
-  }
-
-  .nav-link {
-    padding: 0.9rem 0.8rem;
-    border-radius: 6px;
-    margin: 0.2rem 0;
-  }
-
-  .nav-link.btn {
-    display: inline-block;
-    text-align: center;
-    margin: 0.8rem auto 0 auto;
-    width: fit-content;
-  }
-
-  .user-info {
-    margin-left: 0;
-    padding: 1rem 1.5rem 0 1.5rem;
-    width: 100%;
-  }
-
-  .user-trigger {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .user-profile {
-    width: 100%;
-  }
-
-  .username {
-    margin-right: auto;
-  }
-  
-  /* 悬浮菜单样式 */
-  .hover-menu {
-    width: calc(100vw - 2rem);
-    left: 0;
-    right: 0;
-    margin: 0 auto;
-    z-index: 999;
-  }
-  
-  .hover-nav-list {
+  .hamburger {
     display: flex;
-    flex-direction: column;
   }
-}
 
-/* 桌面端样式：导航菜单靠右对齐 */
-@media (min-width: 1024px) {
-  .nav-list {
-    margin-left: auto; /* 这使得导航列表靠右对齐 */
-  }
-  
-  .nav-item:first-child {
-    margin-left: 1.8rem;
+  .mobile-menu {
+    display: block;
   }
 }
 </style>

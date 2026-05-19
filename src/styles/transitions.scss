@@ -1,0 +1,97 @@
+// ============================================
+// River Blog — Transitions & Animations
+// ============================================
+
+// ---------- Card Stagger Animation ----------
+.card-stagger-enter-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.card-stagger-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.card-stagger-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.card-stagger-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+// ---------- Shimmer Loading ----------
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-gray-100) 25%,
+    var(--color-gray-50) 50%,
+    var(--color-gray-100) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+// ---------- Float Animation (for decorative elements) ----------
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+  66% {
+    transform: translateY(5px) rotate(-1deg);
+  }
+}
+
+// ---------- Pulse Glow ----------
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+  }
+}
+
+// ---------- Fade In ----------
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// ---------- Slide Up ----------
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease forwards;
+}
